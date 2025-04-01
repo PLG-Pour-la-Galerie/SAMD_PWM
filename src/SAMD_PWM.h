@@ -381,51 +381,51 @@ class SAMD_PWM
     {
       uint32_t period = 1000000 / frequency;
 
-      uint32_t newPeriod = period / 256;
+      // uint32_t newPeriod = period / 256;
 
-      if (newPeriod > 300000)
+      if (period > 300000)
       {
         // Set prescaler to 1024
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV1024;
         _prescaler = 1024;
       }
-      else if (80000 < newPeriod && newPeriod <= 300000)
+      else if (80000 < period && period <= 300000)
       {
         // Set prescaler to 256
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV256;
         _prescaler = 256;
       }
-      else if (20000 < newPeriod && newPeriod <= 80000)
+      else if (20000 < period && period <= 80000)
       {
         // Set prescaler to 64
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV64;
         _prescaler = 64;
       }
-      else if (10000 < newPeriod && newPeriod <= 20000)
+      else if (10000 < period && period <= 20000)
       {
         // Set prescaler to 16
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV16;
         _prescaler = 16;
       }
-      else if (5000 < newPeriod && newPeriod <= 10000)
+      else if (5000 < period && period <= 10000)
       {
         // Set prescaler to 8
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV8;
         _prescaler = 8;
       }
-      else if (2500 < newPeriod && newPeriod <= 5000)
+      else if (2500 < period && period <= 5000)
       {
         // Set prescaler to 4
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV4;
         _prescaler = 4;
       }
-      else if (1000 < newPeriod && newPeriod <= 2500)
+      else if (1000 < period && period <= 2500)
       {
         // Set prescaler to 2
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV2;
         _prescaler = 2;
       }
-      else if (newPeriod <= 1000)
+      else if (period <= 1000)
       {
         // Set prescaler to 1
         _prescalerConfigBits = TC_CTRLA_PRESCALER_DIV1;
@@ -698,43 +698,43 @@ class SAMD_PWM
           if (_tcNum >= TCC_INST_NUM)
           {
             // Convert to 8-bit
-            newDC = newDC >> 8;
+            // newDC = newDC >> 8;
 
             // Must use 8-bit for old TC PWM
             PWM_LOGDEBUG7(F("SAMD21 setPWM_Int: New TC => newDC ="), newDC, F(", input dutycycle ="), dutycycle,
-                          F(", _compareValue ="), _compareValue >> 8, F(", frequency ="), frequency);
+                          F(", _compareValue ="), _compareValue, F(", frequency ="), frequency);
 
             // -- Configure TC
             Tc* TCx = (Tc*) GetTC(_pinDesc.ulPWMChannel);
 
             //reset
-            TCx->COUNT8.CTRLA.bit.SWRST = 1;
+            TCx->COUNT16.CTRLA.bit.SWRST = 1;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
 
             // Disable TCx
-            TCx->COUNT8.CTRLA.bit.ENABLE = 0;
+            TCx->COUNT16.CTRLA.bit.ENABLE = 0;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
 
             // Set Timer counter Mode to 8 bits, normal PWM, PRESCALER_DIV256
-            TCx->COUNT16.CTRLA.reg |= TC_CTRLA_MODE_COUNT8 | TC_CTRLA_WAVEGEN_NPWM | TC_CTRLA_PRESCALER_DIV256;
+            TCx->COUNT16.CTRLA.reg |= TC_CTRLA_MODE_COUNT16 | TC_CTRLA_WAVEGEN_MPWM;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
 
             // Set the Dutycycle
-            TCx->COUNT8.CC[_tcChannel].reg = (uint8_t) newDC;
+            TCx->COUNT16.CC[_tcChannel].reg = newDC;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
 
             // Set PER to _compareValue to match frequency
             // convert to 8-bit
-            TCx->COUNT8.PER.reg = _compareValue >> 8;
+            TCx->COUNT16.CC[0].reg = _compareValue;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
 
             // Enable TCx
-            TCx->COUNT8.CTRLA.bit.ENABLE = 1;
+            TCx->COUNT16.CTRLA.bit.ENABLE = 1;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
           }
@@ -790,6 +790,10 @@ class SAMD_PWM
 
             // Set the Dutycycle
             TCx->COUNT16.CC[_tcChannel].reg = newDC;
+
+            while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
+
+            TCx->COUNT16.CC[0].reg = _compareValue;
 
             while (TCx->COUNT16.STATUS.bit.SYNCBUSY);
           }
@@ -1028,4 +1032,3 @@ class SAMD_PWM
 
 
 #endif    // SAMD_PWM_H
-
